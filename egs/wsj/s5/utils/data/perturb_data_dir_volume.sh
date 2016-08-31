@@ -38,7 +38,7 @@ scale_high = 2.0
 for line in sys.stdin.readlines():
   if len(line.strip()) == 0:
     continue
-  # Handle three cases of rxfilenames appropriately; "input piped command", "file offset" and "filename"
+  # Handle three cases of rxfilenames appropriately; 'input piped command', 'file offset' and 'filename'
   if line.strip()[-1] == '|':
     print '{0} sox --vol {1} -t wav - -t wav - |'.format(line.strip(), random.uniform(scale_low, scale_high))
   elif re.search(':[0-9]+$', line.strip()) is not None:
