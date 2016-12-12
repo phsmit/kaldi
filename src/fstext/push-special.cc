@@ -155,7 +155,7 @@ class PushSpecialClass {
       // eigenvalues of the weight matrix (including negative and imaginary
       // ones) all have the same magnitude.
       for (int i = 0; i < num_states_; i++)
-        new_occ[i] = 0.5 * occ_[i];
+        new_occ[i] = 0.9 * occ_[i];
       
       for (int i = 0; i < num_states_; i++) {
         std::vector<std::pair<StateId, double> >::const_iterator iter,
