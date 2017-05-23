@@ -28,7 +28,7 @@ namespace kaldi {
   int32 CopySubsetLattices(std::string filename, 
       SequentialLatticeReader *lattice_reader,
       LatticeWriter *lattice_writer,
-      bool include = true, bool ignore_missing = false
+      bool include = true, bool ignore_missing = false, bool topsort = false
       ) {
     unordered_set<std::string, StringHasher> subset;
     std::set<std::string> subset_list; 
@@ -59,10 +59,22 @@ namespace kaldi {
       }
 
       if (include && subset.count(lattice_reader->Key()) > 0) {
-        lattice_writer->Write(lattice_reader->Key(), lattice_reader->Value());
+        Lattice lat = lattice_reader->Value();
+        if (topsort && lat.Properties(fst::kTopSorted, false) == 0) {
+          if (fst::TopSort(&lat) == false) {
+            KALDI_WARN << "Cycles detected in lattice: cannot TopSort";
+          }   
+        }
+        lattice_writer->Write(lattice_reader->Key(), lat);
         num_success++;
       } else if (!include && subset.count(lattice_reader->Key()) == 0) {
-        lattice_writer->Write(lattice_reader->Key(), lattice_reader->Value());
+        Lattice lat = lattice_reader->Value();
+        if (topsort && lat.Properties(fst::kTopSorted, false) == 0) {
+          if (fst::TopSort(&lat) == false) {
+            KALDI_WARN << "Cycles detected in lattice: cannot TopSort";
+          }   
+        }
+        lattice_writer->Write(lattice_reader->Key(), lat);
         num_success++;
       }
     }
@@ -78,7 +90,7 @@ namespace kaldi {
   int32 CopySubsetLattices(std::string filename, 
       SequentialCompactLatticeReader *lattice_reader,
       CompactLatticeWriter *lattice_writer,
-      bool include = true, bool ignore_missing = false
+      bool include = true, bool ignore_missing = false, bool topsort = false
       ) {
     unordered_set<std::string, StringHasher> subset;
     std::set<std::string> subset_list; 
@@ -109,10 +121,23 @@ namespace kaldi {
       }
 
       if (include && subset.count(lattice_reader->Key()) > 0) {
-        lattice_writer->Write(lattice_reader->Key(), lattice_reader->Value());
+        CompactLattice clat = lattice_reader->Value();
+        if (topsort && clat.Properties(fst::kTopSorted, false) == 0) {
+          if (fst::TopSort(&clat) == false) {
+            KALDI_WARN << "Cycles detected in lattice: cannot TopSort";
+          }   
+        }
+        lattice_writer->Write(lattice_reader->Key(), clat);
+
         num_success++;
       } else if (!include && subset.count(lattice_reader->Key()) == 0) {
-        lattice_writer->Write(lattice_reader->Key(), lattice_reader->Value());
+        CompactLattice clat = lattice_reader->Value();
+        if (topsort && clat.Properties(fst::kTopSorted, false) == 0) {
+          if (fst::TopSort(&clat) == false) {
+            KALDI_WARN << "Cycles detected in lattice: cannot TopSort";
+          }   
+        }
+        lattice_writer->Write(lattice_reader->Key(), clat);
         num_success++;
       }
     }
@@ -143,12 +168,14 @@ int main(int argc, char *argv[]) {
         "whitelisted utterances that would be copied and --exclude option "
         "specifies the blacklisted utterances that would not be copied.\n"
         "Only one of --include and --exclude can be supplied.\n"
+        "The --topsort flag can be used to make sure the copied lattices is \n"
+        "in topologically sorted order\n"
         "Usage: lattice-copy [options] lattice-rspecifier lattice-wspecifier\n"
         " e.g.: lattice-copy --write-compact=false ark:1.lats ark,t:text.lats\n"
         "See also: lattice-to-fst, and the script egs/wsj/s5/utils/convert_slf.pl\n";
     
     ParseOptions po(usage);
-    bool write_compact = true, ignore_missing = false;
+    bool write_compact = true, ignore_missing = false, topsort = false;
     std::string include_rxfilename;
     std::string exclude_rxfilename;
 
@@ -163,6 +190,8 @@ int main(int argc, char *argv[]) {
                 "whose lattices will be excluded");
     po.Register("ignore-missing", &ignore_missing,
                 "Exit with status 0 even if no lattices are copied");
+    po.Register("topsort", &topsort,
+                "Make sure that lattice is TopSorted");
 
     po.Read(argc, argv);
 
@@ -190,11 +219,18 @@ int main(int argc, char *argv[]) {
       } else if (exclude_rxfilename != "") {
         return CopySubsetLattices(exclude_rxfilename, 
             &lattice_reader, &lattice_writer,
-            false, ignore_missing);
+            false, ignore_missing, topsort);
       }
 
-      for (; !lattice_reader.Done(); lattice_reader.Next(), n_done++)
-        lattice_writer.Write(lattice_reader.Key(), lattice_reader.Value());
+      for (; !lattice_reader.Done(); lattice_reader.Next(), n_done++) {
+        CompactLattice clat = lattice_reader.Value();
+        if (topsort && clat.Properties(fst::kTopSorted, false) == 0) {
+          if (fst::TopSort(&clat) == false) {
+            KALDI_WARN << "Cycles detected in lattice: cannot TopSort";
+          }   
+        }
+        lattice_writer.Write(lattice_reader.Key(), clat);
+      }
     } else {
       SequentialLatticeReader lattice_reader(lats_rspecifier);
       LatticeWriter lattice_writer(lats_wspecifier);
@@ -209,11 +245,18 @@ int main(int argc, char *argv[]) {
       } else if (exclude_rxfilename != "") {
         return CopySubsetLattices(exclude_rxfilename,
             &lattice_reader, &lattice_writer,
-            true, ignore_missing);
+            true, ignore_missing, topsort);
       }
 
-      for (; !lattice_reader.Done(); lattice_reader.Next(), n_done++)
-        lattice_writer.Write(lattice_reader.Key(), lattice_reader.Value());
+      for (; !lattice_reader.Done(); lattice_reader.Next(), n_done++) {
+        Lattice lat = lattice_reader.Value();
+        if (topsort && lat.Properties(fst::kTopSorted, false) == 0) {
+          if (fst::TopSort(&lat) == false) {
+            KALDI_WARN << "Cycles detected in lattice: cannot TopSort";
+          }   
+        }
+        lattice_writer.Write(lattice_reader.Key(), lat);
+      }
     }
     KALDI_LOG << "Done copying " << n_done << " lattices.";
     
