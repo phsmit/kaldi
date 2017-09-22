@@ -21,18 +21,19 @@ fi
 # Fix a small mistake in the corpus
 sed "s#/scratch/elec/puhec/eduskunta/filtered_data/##g" < "$PARL_DIR/parl-seen.eval.list" > "$PARL_DIR/../../parl-seen.eval.fixed.list"
 
-declare -A sets=( [train_30m]=parl-30min.train
-                  [train_60m]=parl-60min.train
-                  [train_clean]=parl-400.train
-                  [train_all]=parl-all.train
-                  [dev_seen]=parl-seen.dev
-                  [dev_unseen]=parl-unseen.dev
-                  [eval_seen]=../../parl-seen.eval.fixed
-                  [eval_unseen]=parl-unseen.eval )
+declare -A real_sets=( [train_all]=parl-all.train
+                       [dev_seen]=parl-seen.dev
+                       [dev_unseen]=parl-unseen.dev
+                       [eval_seen]=../../parl-seen.eval.fixed
+                       [eval_unseen]=parl-unseen.eval )
 
-for s in "${!sets[@]}"; do
+declare -A sub_sets=( [train_30m]=parl-30min.train
+                      [train_60m]=parl-60min.train
+                      [train_clean]=parl-400.train )
+
+for s in "${!real_sets[@]}"; do
   echo "Gathering dataset $s"
-  list="$PARL_DIR/${sets[$s]}.list"
+  list="$PARL_DIR/${real_sets[$s]}.list"
   if [ ! -f "$list" ]; then
      echo "Error: Expected file $list to exist"
      exit 1;
@@ -57,5 +58,15 @@ for s in "${!sets[@]}"; do
   utils/fix_data_dir.sh "data/$s"
 done
 
-utils/combine_data.sh data/dev data/dev_seen data/dev_unseen
-utils/combine_data.sh data/eval data/eval_seen data/eval_unseen
+mkdir -p data/local/subsets
+for s in "${!sub_sets[@]}"; do
+  list="$PARL_DIR/${sub_sets[$s]}.list"
+  if [ ! -f "$list" ]; then
+     echo "Error: Expected file $list to exist"
+     exit 1;
+  fi
+  sed "s#/#-#" < "$list" | sed "s/.wav//" > "data/local/subsets/$s" 
+done
+
+#utils/combine_data.sh data/dev data/dev_seen data/dev_unseen
+#utils/combine_data.sh data/eval data/eval_seen data/eval_unseen
