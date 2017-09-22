@@ -807,7 +807,7 @@ def TimeToString(time, frame_length):
 
 def WriteSegmentsForUtterance(text_output_handle, segments_output_handle,
                               old_utterance_name, segments):
-    num_digits = len(str(len(segments)))
+    num_digits = len(str(len(segments)+1))
     for n in range(len(segments)):
         segment = segments[n]
         # split utterances will be named foo-bar-1 foo-bar-2, etc.
