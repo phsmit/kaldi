@@ -4,3 +4,4 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$PWD:$PATH
 . $KALDI_ROOT/tools/config/common_path.sh
 
 export LC_ALL=C
+module load GCC/5.4.0-2.25 CUDA/8.0.61 anaconda3 anaconda2
